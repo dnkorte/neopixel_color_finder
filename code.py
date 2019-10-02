@@ -44,6 +44,7 @@ must create lib/ folder and install the following Adafruit libraries:
     adafruit_st7735r.mpy
     adafruit_debouncer.mpy
     neopixel.mpy
+    simplieio.mpy
 
 ItsyBitsy pin connections:
     to NeoPixel: 5!
@@ -60,6 +61,7 @@ ItsyBitsy pin connections:
 
 import board
 import time
+import simpleio
 from digitalio import DigitalInOut, Direction, Pull
 from analogio import AnalogIn
 import displayio
@@ -70,39 +72,33 @@ from adafruit_display_shapes.circle import Circle
 from adafruit_debouncer import Debouncer
 import neopixel
 
-def wheel(pos):
-    # Input a value 0 to 255 to get a color value.
-    # The colours are a transition r - g - b - back to r.
-    if pos < 0 or pos > 255:
-        return (0, 0, 0)
-    if pos < 85:
-        return (255 - pos * 3, pos * 3, 0)
-    if pos < 170:
-        pos -= 85
-        return (0, 255 - pos * 3, pos * 3)
-    pos -= 170
-    return (pos * 3, 0, 255 - pos * 3)
+def display_val_r(text):
+    disp_r_textbox.text = text
+    _, _, textwidth, _ = disp_r_textbox.bounding_box
+    # note this field is scaled by 2 so we initially center it in a 80 pixel space
+    new_x = int(2 * (15 - (textwidth/2)))
+    text_group_r.x = new_x
 
-def display_line1(text):
-    line1_textbox.text = text
-    _, _, textwidth, _ = line1_textbox.bounding_box
+def display_val_g(text):
+    disp_g_textbox.text = text
+    _, _, textwidth, _ = disp_g_textbox.bounding_box
     # note this field is scaled by 2 so we initially center it in a 80 pixel space
     new_x = int(2 * (40 - (textwidth/2)))
-    text_group1.x = new_x
+    text_group_g.x = new_x
 
-def display_line2(text):
-    line2_textbox.text = text
-    _, _, textwidth, _ = line2_textbox.bounding_box
+def display_val_b(text):
+    disp_b_textbox.text = text
+    _, _, textwidth, _ = disp_b_textbox.bounding_box
+    # note this field is scaled by 2 so we initially center it in a 80 pixel space
+    new_x = int(2 * (65 - (textwidth/2)))
+    text_group_b.x = new_x
+
+def display_val_h(text):
+    line_h_textbox.text = text
+    _, _, textwidth, _ = line_h_textbox.bounding_box
     # note this field is scaled by 2 so we initially center it in a 80 pixel space
     new_x = int(2 * (40 - (textwidth/2)))
-    text_group2.x = new_x
-
-def display_line3(text):
-    line3_textbox.text = text
-    _, _, textwidth, _ = line3_textbox.bounding_box
-    # note this field is scaled by 2 so we initially center it in a 80 pixel space
-    new_x = int(2 * (40 - (textwidth/2)))
-    text_group3.x = new_x
+    text_group_h.x = new_x
 
 def get_voltage(pin):
     avg = 0
@@ -113,17 +109,17 @@ def get_voltage(pin):
     analog_volts = avg * (pin.reference_voltage / 65536) 
     return analog_volts
 
-def get_analog_bits(pin):
+def get_knob(pin):
     avg = 0
-    num_readings = 5
+    num_readings = 8
     for _ in range(num_readings):
-        avg += pin.value        
+        this_value = simpleio.map_range(pin.value, 1000, 64000, 0, 255)
+        avg += this_value                
     avg /= num_readings
-    return avg
+    return int(avg)
 
 # setup for NeoPixels (RGB) ########################################################
 # NeoPixel "strip" (of 2 individual LEDS Adafruit 1938) connected on D5
-
 NUMPIXELS = 2
 ORDER = neopixel.RGB
 neopixels = neopixel.NeoPixel(board.D5, NUMPIXELS, brightness=0.2, auto_write=False, pixel_order=ORDER)
@@ -136,7 +132,8 @@ analog_B_pin = AnalogIn(board.A2)
 # color definitions for TFT display
 D_RED = 0xFF0000
 D_GREEN = 0x00FF00
-D_BLUE = 0x0000FF
+D_BLUE1 = 0x0000FF
+D_BLUE = 0x7480ff
 D_YELLOW = 0xFFFF00
 D_ORANGE = 0xFF8000
 D_BLACK = 0x000000
@@ -157,27 +154,44 @@ display = ST7735R(display_bus, width=160, height=128, rotation=90, bgr=True)
 splash = displayio.Group(max_size=10)
 display.show(splash)
 
-left_circle = Circle(40, 30, 15, fill=D_RED)
-splash.append(left_circle)
-right_circle = Circle(120, 30, 15, fill=D_RED)
-splash.append(right_circle)
+big_circle = Circle(80, 22, 20, fill=D_BLACK, outline=D_WHITE)
+splash.append(big_circle)
+
+circle_saved_1 = Circle(20, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_saved_1)
+circle_saved_2 = Circle(60, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_saved_2)
+circle_saved_3 = Circle(100, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_saved_3)
+circle_saved_4 = Circle(140, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_saved_4)
 
 text = ""
-text_group1 = displayio.Group(max_size=2, scale=2, x=0, y=72)
-line1_textbox = label.Label(terminalio.FONT, text=text, color=D_YELLOW, max_glyphs=12)
-text_group1.append(line1_textbox) 
-splash.append(text_group1)
+text_group_r = displayio.Group(max_size=2, scale=2, x=5, y=86)
+disp_r_textbox = label.Label(terminalio.FONT, text=text, color=D_RED, max_glyphs=12)
+text_group_r.append(disp_r_textbox) 
+splash.append(text_group_r)
 
-text_group2 = displayio.Group(max_size=2, scale=2, x=0, y=96)
-line2_textbox = label.Label(terminalio.FONT, text=text, color=D_YELLOW, max_glyphs=12)
-text_group2.append(line2_textbox) 
-splash.append(text_group2)
+text_group_g = displayio.Group(max_size=2, scale=2, x=55, y=86)
+disp_g_textbox = label.Label(terminalio.FONT, text=text, color=D_GREEN, max_glyphs=12)
+text_group_g.append(disp_g_textbox) 
+splash.append(text_group_g)
+
+text_group_b = displayio.Group(max_size=2, scale=2, x=105, y=86)
+disp_b_textbox = label.Label(terminalio.FONT, text=text, color=D_BLUE, max_glyphs=12)
+text_group_b.append(disp_b_textbox) 
+splash.append(text_group_b)
+
+text_group_h = displayio.Group(max_size=2, scale=2, x=0, y=112)
+line_h_textbox = label.Label(terminalio.FONT, text=text, color=D_YELLOW, max_glyphs=12)
+text_group_h.append(line_h_textbox) 
+splash.append(text_group_h)
 
 # text_group3 = displayio.Group(max_size=2, scale=3, x=72, y=56)
-text_group3 = displayio.Group(max_size=2, scale=2, x=0, y=118)
-line3_textbox = label.Label(terminalio.FONT, text=text, color=D_YELLOW, max_glyphs=12)
-text_group3.append(line3_textbox) 
-splash.append(text_group3)
+# text_group3 = displayio.Group(max_size=2, scale=2, x=0, y=118)
+# line3_textbox = label.Label(terminalio.FONT, text=text, color=D_YELLOW, max_glyphs=12)
+# text_group3.append(line3_textbox) 
+# splash.append(text_group3)
 
 
 # setup environment #################################################################
@@ -194,10 +208,6 @@ debounced_button = Debouncer(button)
 
 fastloop_counter = 0
 
-display_line1("Line 1")
-display_line2("Line 2")
-display_line3("Line 3")
-
 while True:
     # check_button()
     debounced_button.update()
@@ -206,30 +216,31 @@ while True:
 
     time.sleep(0.01)
     fastloop_counter += 1
-    if fastloop_counter > 9:
+    if fastloop_counter > 24:
         fastloop_counter = 0
     else:
         continue
 
     led.value = not debounced_button.value
 
-    R_bits = get_analog_bits(analog_R_pin)
-    R_led_val = int(R_bits/256)
+    R_knob = get_knob(analog_R_pin)
+    #R_led_val = int(R_bits/255)
+    # R_led_val = R_bits
+    display_val_r(str(R_knob))
 
-    G_bits = get_analog_bits(analog_G_pin)
-    G_led_val = int(G_bits/256)
-    display_line2(str(G_led_val))
+    G_knob = get_knob(analog_G_pin)
+    # G_led_val = int(G_bits/255)
+    display_val_g(str(G_knob))
 
-    B_bits = get_analog_bits(analog_B_pin)
-    B_led_val = int(B_bits/256)
+    B_knob = get_knob(analog_B_pin)
+    # B_led_val = int(B_bits/255)
+    display_val_b(str(B_knob))
 
-    rgb_value = (R_led_val << 16) | (G_led_val << 8) | B_led_val
+    rgb_value = (R_knob << 16) | (G_knob << 8) | B_knob
+    display_val_h(hex(rgb_value))
 
-    display_line1("R:"+str(R_led_val)+" G:"+str(G_led_val))
-    display_line2("B:"+str(B_led_val))
-
-    display_line3(hex(rgb_value))
-
-    neopixels[0] = (R_led_val, G_led_val, B_led_val)
-    neopixels[1] = (R_led_val, G_led_val, B_led_val)
+    neopixels[0] = (R_knob, G_knob, B_knob)
+    neopixels[1] = (R_knob, G_knob, B_knob)
     neopixels.show()
+
+    big_circle.fill = rgb_value

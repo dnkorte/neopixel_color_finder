@@ -30,12 +30,12 @@ neopixel_color_finder: use knobs to discover good colors and find their codes
 Author(s):  Don Korte
 Repository: https://github.com/dnkorte/neopixel_color_finder
 
-notes: use neopixel jewel as display; vertical column of 3 show current value
+notes: use neopixel jewel as display; "vertical" column of 3 show current value
 from sliders; the 4 "outriggers" to side show the 4 saved values;   
 use a 4-button matrix to save the 4 values - press and hold saves the current
 value from sliders into that "slot"; quick press displays the saved value on 
-the TFT and all 7 leds, until clicked again (or a different one is clicked); 
-once quick-clicked on the displayed value it returns to slider control
+the TFT and all 7 leds; motion on any "knob" causes it to revert back to
+displaying the knob-requested value.
 
 this version uses TFT display, and requires an M4 class ItsyBitsy
 must create lib/ folder and install the following Adafruit libraries:

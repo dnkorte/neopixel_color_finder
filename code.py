@@ -120,8 +120,8 @@ def get_knob(pin):
 
 # setup for NeoPixels (RGB) ########################################################
 # NeoPixel "strip" (of 2 individual LEDS Adafruit 1938) connected on D5
-NUMPIXELS = 2
-ORDER = neopixel.RGB
+NUMPIXELS = 7
+ORDER = neopixel.GRB
 neopixels = neopixel.NeoPixel(board.D5, NUMPIXELS, brightness=0.2, auto_write=False, pixel_order=ORDER)
 
 # setup a/d converters for knobs
@@ -157,14 +157,14 @@ display.show(splash)
 big_circle = Circle(80, 22, 20, fill=D_BLACK, outline=D_WHITE)
 splash.append(big_circle)
 
-circle_saved_1 = Circle(20, 58, 10, fill=D_BLACK, outline=D_WHITE)
-splash.append(circle_saved_1)
-circle_saved_2 = Circle(60, 58, 10, fill=D_BLACK, outline=D_WHITE)
-splash.append(circle_saved_2)
-circle_saved_3 = Circle(100, 58, 10, fill=D_BLACK, outline=D_WHITE)
-splash.append(circle_saved_3)
-circle_saved_4 = Circle(140, 58, 10, fill=D_BLACK, outline=D_WHITE)
-splash.append(circle_saved_4)
+circle_mem_1 = Circle(20, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_mem_1)
+circle_mem_2 = Circle(60, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_mem_2)
+circle_mem_3 = Circle(100, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_mem_3)
+circle_mem_4 = Circle(140, 58, 10, fill=D_BLACK, outline=D_WHITE)
+splash.append(circle_mem_4)
 
 text = ""
 text_group_r = displayio.Group(max_size=2, scale=2, x=5, y=86)
@@ -196,51 +196,173 @@ splash.append(text_group_h)
 
 # setup environment #################################################################
 
-# Built in red LED
-led = DigitalInOut(board.D13)
-led.direction = Direction.OUTPUT
+# pushbutton for mem cell 1 (yellow wire button 1 on PyGRRL)
+button1 = DigitalInOut(board.D11)
+button1.direction = Direction.INPUT
+button1.pull = Pull.UP
+debounced_button1 = Debouncer(button1)
 
-# Digital input with pullup on D7
-button = DigitalInOut(board.D11)
-button.direction = Direction.INPUT
-button.pull = Pull.UP
-debounced_button = Debouncer(button)
+# pushbutton for mem cell 2 (green wire button 2 on PyGRRL)
+button2 = DigitalInOut(board.D0)
+button2.direction = Direction.INPUT
+button2.pull = Pull.UP
+debounced_button2 = Debouncer(button2)
+
+# pushbutton for mem cell 3 (purple wire button 3 on PyGRRL)
+button3 = DigitalInOut(board.D12)
+button3.direction = Direction.INPUT
+button3.pull = Pull.UP
+debounced_button3 = Debouncer(button3)
+
+# pushbutton for mem cell 4 (blue wire button 4 on PyGRRL)
+button4 = DigitalInOut(board.D1)
+button4.direction = Direction.INPUT
+button4.pull = Pull.UP
+debounced_button4 = Debouncer(button4)
 
 fastloop_counter = 0
+mode = "show_knob_value"
+mem1_rgb = (0, 0, 0)
+mem2_rgb = (0, 0, 0)
+mem3_rgb = (0, 0, 0)
+mem4_rgb = (0, 0, 0)
+keep_this_rgb = 0
+btn1_start_time = 0
+btn2_start_time  = 0
+btn3_start_time  = 0
+btn4_start_time  = 0
+btn1_status = "waiting"
+btn2_status = "waiting"
+btn3_status = "waiting"
+btn4_status = "waiting"
+knob_r_prior_disp_saved_mode = 0
+knob_g_prior_disp_saved_mode = 0
+knob_b_prior_disp_saved_mode = 0
 
 while True:
     # check_button()
-    debounced_button.update()
-    if debounced_button.fell:
-        pass
+    debounced_button1.update()
+    debounced_button2.update()
+    debounced_button3.update()
+    debounced_button4.update()
+
+    if debounced_button1.fell:
+        btn1_start_time = time.monotonic()
+        circle_mem_1.outline =  D_YELLOW
+    if debounced_button2.fell:
+        btn2_start_time = time.monotonic()
+        circle_mem_2.outline =  D_YELLOW
+    if debounced_button3.fell:
+        btn3_start_time = time.monotonic()
+        circle_mem_3.outline =  D_YELLOW
+    if debounced_button4.fell:
+        btn4_start_time = time.monotonic()
+        circle_mem_4.outline =  D_YELLOW
+
+    if debounced_button1.rose:
+        downtime = time.monotonic() - btn1_start_time
+        circle_mem_1.outline =  D_WHITE
+        if (downtime < 0.75):
+            btn1_status = "short"
+        else:
+            btn1_status = "long"
+
+    if debounced_button2.rose:
+        downtime = time.monotonic() - btn2_start_time        
+        circle_mem_2.outline =  D_WHITE
+        if (downtime < 0.75):
+            btn2_status = "short"
+        else:
+            btn2_status = "long"
+
+    if debounced_button3.rose:
+        downtime = time.monotonic() - btn3_start_time       
+        circle_mem_3.outline =  D_WHITE
+        if (downtime < 0.75):
+            btn3_status = "short"
+        else:
+            btn3_status = "long"
+
+    if debounced_button4.rose:
+        downtime = time.monotonic() - btn4_start_time       
+        circle_mem_4.outline =  D_WHITE
+        if (downtime < 0.75):
+            btn4_status = "short"
+        else:
+            btn4_status = "long"
 
     time.sleep(0.01)
+
     fastloop_counter += 1
-    if fastloop_counter > 24:
-        fastloop_counter = 0
-    else:
-        continue
 
-    led.value = not debounced_button.value
+    if fastloop_counter > 24:  
 
-    R_knob = get_knob(analog_R_pin)
-    #R_led_val = int(R_bits/255)
-    # R_led_val = R_bits
-    display_val_r(str(R_knob))
+        # every 0.25 seconds we read knobs and update displays
+        fastloop_counter = 0  
+        R_knob = get_knob(analog_R_pin)
+        G_knob = get_knob(analog_G_pin)
+        B_knob = get_knob(analog_B_pin)
 
-    G_knob = get_knob(analog_G_pin)
-    # G_led_val = int(G_bits/255)
-    display_val_g(str(G_knob))
+        if (mode == "show_knob_value"):
+            rgb_value_i = (R_knob << 16) | (G_knob << 8) | B_knob
+            keep_this_rgb = (R_knob, G_knob, B_knob)
+            display_val_r(str(R_knob))
+            display_val_g(str(G_knob))
+            display_val_b(str(B_knob))
+            display_val_h(hex(rgb_value_i))
 
-    B_knob = get_knob(analog_B_pin)
-    # B_led_val = int(B_bits/255)
-    display_val_b(str(B_knob))
+            neopixels[0] = (R_knob, G_knob, B_knob)
+            neopixels[1] = (R_knob, G_knob, B_knob)
+            neopixels[4] = (R_knob, G_knob, B_knob)
+            neopixels.show()
 
-    rgb_value = (R_knob << 16) | (G_knob << 8) | B_knob
-    display_val_h(hex(rgb_value))
+            big_circle.fill = rgb_value_i
 
-    neopixels[0] = (R_knob, G_knob, B_knob)
-    neopixels[1] = (R_knob, G_knob, B_knob)
-    neopixels.show()
+            if btn1_status == "long":
+                mem1_rgb = keep_this_rgb
+                circle_mem_1.fill = rgb_value_i
+                neopixels[6] = (R_knob, G_knob, B_knob)     # upper left
+                btn1_status = "waiting"
 
-    big_circle.fill = rgb_value
+            if btn2_status == "long":
+                mem2_rgb = keep_this_rgb
+                circle_mem_2.fill = rgb_value_i
+                neopixels[5] = (R_knob, G_knob, B_knob)     # lower left
+                btn2_status = "waiting"
+
+            if btn3_status == "long":
+                mem3_rgb = keep_this_rgb
+                circle_mem_3.fill = rgb_value_i
+                neopixels[2] = (R_knob, G_knob, B_knob)     # upper right
+                btn3_status = "waiting"
+
+            if btn4_status == "long":
+                mem4_rgb = keep_this_rgb
+                circle_mem_4.fill = rgb_value_i
+                neopixels[3] = (R_knob, G_knob, B_knob)     # lower right
+                btn4_status = "waiting"
+
+
+            if btn1_status == "short":
+                print("button 1 short")
+                btn1_status = "waiting"
+                # mode == "showing_stored_value"
+
+            if btn2_status == "short":
+                print("button 2 short")
+                btn2_status = "waiting"
+                # mode == "showing_stored_value"
+
+            if btn3_status == "short":
+                print("button 3 short")
+                btn3_status = "waiting"
+                # mode == "showing_stored_value"
+
+            if btn4_status == "short":
+                print("button 4 short")
+                btn4_status = "waiting"
+                # mode == "showing_stored_value"
+        else:
+            # here we are in show_memory_value mode
+            pass
+        

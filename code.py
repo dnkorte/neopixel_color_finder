@@ -47,16 +47,22 @@ must create lib/ folder and install the following Adafruit libraries:
     simplieio.mpy
 
 ItsyBitsy pin connections:
-    to NeoPixel: 5!
+    to NeoPixel Jewel: 5!       (power this from ItsyBitsy Vhi)
     to TFT (1.8in TFT http://www.adafruit.com/products/358):
         SCK /   SCK
         MOSI /  MOSI
         10:     CS
         9:      Reset
         7:      DC
+        A0:     analog RED
+        A1:     analog GREEN
+        A2:     analog BLUE
+        12:     Pushbutton 3 active low
+        11:     Pushbutton 1 active low
+        1:      Pushbutton 4 active low
+        0:      Pushbutton 2 active low
         (Note also TFT requires power, ground, and backlight)
-        (Note also ItsyBitsy requires Vbat and Gnd, and it also supplies power for PB pullup (Vhi))
-    to pushbutton: 11  (normally pulled high, press takes it low)
+        (Note also ItsyBitsy requires Vbat and Gnd, and it also supplies power for PB pullup (3v))
 """
 
 import board
@@ -118,6 +124,19 @@ def get_knob(pin):
     avg /= num_readings
     return int(avg)
 
+def wheel(pos):
+    # Input a value 0 to 255 to get a color value.
+    # The colours are a transition r - g - b - back to r.
+    if pos < 0 or pos > 255:
+        return (0, 0, 0)
+    if pos < 85:
+        return (255 - pos * 3, pos * 3, 0)
+    if pos < 170:
+        pos -= 85
+        return (0, 255 - pos * 3, pos * 3)
+    pos -= 170
+    return (pos * 3, 0, 255 - pos * 3)
+
 # setup for NeoPixels (RGB) ########################################################
 # NeoPixel "strip" (of 2 individual LEDS Adafruit 1938) connected on D5
 NUMPIXELS = 7
@@ -153,6 +172,43 @@ display = ST7735R(display_bus, width=160, height=128, rotation=90, bgr=True)
 # Make the display context
 splash = displayio.Group(max_size=10)
 display.show(splash)
+
+# startup mode displays rainbow cycle until a knob is changed ====================================
+# 
+# note when exporting BMP file from Gimp, compatibility options should be "no color space info", 
+# and advance options may be  "16 bit R5 G6 B5"
+f = open("/splash2.bmp", "rb")
+background = displayio.OnDiskBitmap(f)
+face = displayio.TileGrid(background, pixel_shader=displayio.ColorConverter(), x=0, y=0)
+splash.append(face)
+R_knob_last = get_knob(analog_R_pin)
+G_knob_last = get_knob(analog_G_pin)
+B_knob_last = get_knob(analog_B_pin)
+for j in range(5000):
+    for i in range(NUMPIXELS):
+        pixel_index = (i * 256 // NUMPIXELS) + j*10
+        neopixels[i] = wheel(pixel_index & 255)
+    neopixels.show()
+    time.sleep(0.05)
+    R_knob = get_knob(analog_R_pin)
+    G_knob = get_knob(analog_G_pin)
+    B_knob = get_knob(analog_B_pin)
+    if (abs(R_knob - R_knob_last) > 5) or (abs(G_knob - G_knob_last) > 5) or (abs(B_knob - B_knob_last) > 5):
+        break
+    R_knob_last = R_knob
+    G_knob_last = G_knob
+    B_knob_last = B_knob
+
+# user is ready, so turn off all the neopixels and blank the screen
+for i in range(NUMPIXELS):      
+    neopixels[i] = (0, 0, 0)
+    neopixels.show()
+
+splash.pop()    # undisplay the opening graphic
+
+# end of startup splash mode ======================================================================
+
+
 
 big_circle = Circle(80, 36, 25, fill=D_BLACK, outline=D_WHITE)
 splash.append(big_circle)
@@ -238,6 +294,8 @@ btn4_status = "waiting"
 knob_r_prior_disp_saved_mode = 0
 knob_g_prior_disp_saved_mode = 0
 knob_b_prior_disp_saved_mode = 0
+
+
 
 while True:
     # check_button()

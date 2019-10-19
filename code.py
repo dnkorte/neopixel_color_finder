@@ -154,16 +154,16 @@ display = ST7735R(display_bus, width=160, height=128, rotation=90, bgr=True)
 splash = displayio.Group(max_size=10)
 display.show(splash)
 
-big_circle = Circle(80, 22, 20, fill=D_BLACK, outline=D_WHITE)
+big_circle = Circle(80, 36, 25, fill=D_BLACK, outline=D_WHITE)
 splash.append(big_circle)
 
-circle_mem_1 = Circle(20, 58, 10, fill=D_BLACK, outline=D_WHITE)
+circle_mem_1 = Circle(35, 12, 12, fill=D_BLACK, outline=D_WHITE)
 splash.append(circle_mem_1)
-circle_mem_2 = Circle(60, 58, 10, fill=D_BLACK, outline=D_WHITE)
+circle_mem_2 = Circle(35, 60, 12, fill=D_BLACK, outline=D_WHITE)
 splash.append(circle_mem_2)
-circle_mem_3 = Circle(100, 58, 10, fill=D_BLACK, outline=D_WHITE)
+circle_mem_3 = Circle(125, 12, 12, fill=D_BLACK, outline=D_WHITE)
 splash.append(circle_mem_3)
-circle_mem_4 = Circle(140, 58, 10, fill=D_BLACK, outline=D_WHITE)
+circle_mem_4 = Circle(125, 60, 12, fill=D_BLACK, outline=D_WHITE)
 splash.append(circle_mem_4)
 
 text = ""

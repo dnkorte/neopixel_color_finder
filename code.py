@@ -106,6 +106,13 @@ def display_val_h(text):
     new_x = int(2 * (40 - (textwidth/2)))
     text_group_h.x = new_x
 
+def convert_tuple_to_hex(rgb_tuple):
+    r = rgb_tuple[0]
+    g = rgb_tuple[1]
+    b = rgb_tuple[2]
+    rgb_value_i = (r << 16) | (g << 8) | b
+    return rgb_value_i
+
 def get_voltage(pin):
     avg = 0
     num_readings = 5
@@ -173,6 +180,7 @@ display = ST7735R(display_bus, width=160, height=128, rotation=90, bgr=True)
 splash = displayio.Group(max_size=10)
 display.show(splash)
 
+# ================================================================================================
 # startup mode displays rainbow cycle until a knob is changed ====================================
 # 
 # note when exporting BMP file from Gimp, compatibility options should be "no color space info", 
@@ -207,8 +215,7 @@ for i in range(NUMPIXELS):
 splash.pop()    # undisplay the opening graphic
 
 # end of startup splash mode ======================================================================
-
-
+# =================================================================================================
 
 big_circle = Circle(80, 36, 25, fill=D_BLACK, outline=D_WHITE)
 splash.append(big_circle)
@@ -295,8 +302,6 @@ knob_r_prior_disp_saved_mode = 0
 knob_g_prior_disp_saved_mode = 0
 knob_b_prior_disp_saved_mode = 0
 
-
-
 while True:
     # check_button()
     debounced_button1.update()
@@ -307,47 +312,64 @@ while True:
     if debounced_button1.fell:
         btn1_start_time = time.monotonic()
         circle_mem_1.outline =  D_YELLOW
+        btn1_status = "pressed"
     if debounced_button2.fell:
         btn2_start_time = time.monotonic()
         circle_mem_2.outline =  D_YELLOW
+        btn2_status = "pressed"
     if debounced_button3.fell:
         btn3_start_time = time.monotonic()
         circle_mem_3.outline =  D_YELLOW
+        btn3_status = "pressed"
     if debounced_button4.fell:
         btn4_start_time = time.monotonic()
         circle_mem_4.outline =  D_YELLOW
+        btn4_status = "pressed"
 
-    if debounced_button1.rose:
-        downtime = time.monotonic() - btn1_start_time
+
+    downtime = time.monotonic() - btn1_start_time
+    if btn1_status == "pressed" and debounced_button1.value:
         circle_mem_1.outline =  D_WHITE
         if (downtime < 0.75):
             btn1_status = "short"
         else:
             btn1_status = "long"
+    if (btn1_status == "pressed" and downtime > 0.75):
+        btn1_status = "long"
+        circle_mem_1.outline =  D_WHITE
 
-    if debounced_button2.rose:
-        downtime = time.monotonic() - btn2_start_time        
+    downtime = time.monotonic() - btn2_start_time
+    if btn2_status == "pressed" and debounced_button2.value:
         circle_mem_2.outline =  D_WHITE
         if (downtime < 0.75):
             btn2_status = "short"
         else:
             btn2_status = "long"
+    if (btn2_status == "pressed" and downtime > 0.75):
+        btn2_status = "long"
+        circle_mem_2.outline =  D_WHITE
 
-    if debounced_button3.rose:
-        downtime = time.monotonic() - btn3_start_time       
+    downtime = time.monotonic() - btn3_start_time
+    if btn3_status == "pressed" and debounced_button3.value:
         circle_mem_3.outline =  D_WHITE
         if (downtime < 0.75):
             btn3_status = "short"
         else:
             btn3_status = "long"
+    if (btn3_status == "pressed" and downtime > 0.75):
+        btn3_status = "long"
+        circle_mem_3.outline =  D_WHITE
 
-    if debounced_button4.rose:
-        downtime = time.monotonic() - btn4_start_time       
+    downtime = time.monotonic() - btn4_start_time
+    if btn4_status == "pressed" and debounced_button4.value:
         circle_mem_4.outline =  D_WHITE
         if (downtime < 0.75):
             btn4_status = "short"
         else:
             btn4_status = "long"
+    if (btn4_status == "pressed" and downtime > 0.75):
+        btn4_status = "long"
+        circle_mem_4.outline =  D_WHITE
 
     time.sleep(0.01)
 
@@ -357,70 +379,114 @@ while True:
 
         # every 0.25 seconds we read knobs and update displays
         fastloop_counter = 0  
+        R_knob_last = R_knob
+        G_knob_last = G_knob
+        B_knob_last = B_knob
+
         R_knob = get_knob(analog_R_pin)
         G_knob = get_knob(analog_G_pin)
         B_knob = get_knob(analog_B_pin)
 
+        if btn1_status == "short":
+            print("button 1 short")
+            print("entering show stored 1")
+            btn1_status = "waiting"
+            mode = "showing_stored_value"
+            big_circle.fill = convert_tuple_to_hex(mem1_rgb)
+            neopixels[0] = mem1_rgb
+            neopixels[1] = mem1_rgb
+            neopixels[4] = mem1_rgb
+            neopixels.show()
+            display_val_r(str(mem1_rgb[0]))
+            display_val_g(str(mem1_rgb[1]))
+            display_val_b(str(mem1_rgb[2]))
+            display_val_h(hex(convert_tuple_to_hex(mem1_rgb)))
+
+        if btn2_status == "short":
+            print("button 2 short")
+            print("entering show stored 2")
+            btn2_status = "waiting"
+            mode = "showing_stored_value"
+            big_circle.fill = convert_tuple_to_hex(mem2_rgb)
+            neopixels[0] = mem2_rgb
+            neopixels[1] = mem2_rgb
+            neopixels[4] = mem2_rgb
+            neopixels.show()
+            display_val_r(str(mem2_rgb[0]))
+            display_val_g(str(mem2_rgb[1]))
+            display_val_b(str(mem2_rgb[2]))
+            display_val_h(hex(convert_tuple_to_hex(mem2_rgb)))
+
+        if btn3_status == "short":
+            print("button 3 short")
+            print("entering show stored 3")
+            btn3_status = "waiting"
+            mode = "showing_stored_value"
+            big_circle.fill = convert_tuple_to_hex(mem3_rgb)
+            neopixels[0] = mem3_rgb
+            neopixels[1] = mem3_rgb
+            neopixels[4] = mem3_rgb
+            neopixels.show()
+            display_val_r(str(mem3_rgb[0]))
+            display_val_g(str(mem3_rgb[1]))
+            display_val_b(str(mem3_rgb[2]))
+            display_val_h(hex(convert_tuple_to_hex(mem3_rgb)))
+
+        if btn4_status == "short":
+            print("button 4 short")
+            print("entering show stored 4")
+            btn4_status = "waiting"
+            mode = "showing_stored_value"
+            big_circle.fill = convert_tuple_to_hex(mem4_rgb)
+            neopixels[0] = mem4_rgb
+            neopixels[1] = mem4_rgb
+            neopixels[4] = mem4_rgb
+            neopixels.show()
+            display_val_r(str(mem4_rgb[0]))
+            display_val_g(str(mem4_rgb[1]))
+            display_val_b(str(mem4_rgb[2]))
+            display_val_h(hex(convert_tuple_to_hex(mem4_rgb)))
+
         if (mode == "show_knob_value"):
-            rgb_value_i = (R_knob << 16) | (G_knob << 8) | B_knob
             keep_this_rgb = (R_knob, G_knob, B_knob)
             display_val_r(str(R_knob))
             display_val_g(str(G_knob))
             display_val_b(str(B_knob))
-            display_val_h(hex(rgb_value_i))
+            display_val_h(hex(convert_tuple_to_hex(keep_this_rgb)))
 
             neopixels[0] = (R_knob, G_knob, B_knob)
             neopixels[1] = (R_knob, G_knob, B_knob)
             neopixels[4] = (R_knob, G_knob, B_knob)
             neopixels.show()
 
-            big_circle.fill = rgb_value_i
+            big_circle.fill = convert_tuple_to_hex(keep_this_rgb)
 
             if btn1_status == "long":
                 mem1_rgb = keep_this_rgb
-                circle_mem_1.fill = rgb_value_i
+                circle_mem_1.fill = convert_tuple_to_hex(keep_this_rgb)
                 neopixels[6] = (R_knob, G_knob, B_knob)     # upper left
                 btn1_status = "waiting"
 
             if btn2_status == "long":
                 mem2_rgb = keep_this_rgb
-                circle_mem_2.fill = rgb_value_i
+                circle_mem_2.fill = convert_tuple_to_hex(keep_this_rgb)
                 neopixels[5] = (R_knob, G_knob, B_knob)     # lower left
                 btn2_status = "waiting"
 
             if btn3_status == "long":
                 mem3_rgb = keep_this_rgb
-                circle_mem_3.fill = rgb_value_i
+                circle_mem_3.fill = convert_tuple_to_hex(keep_this_rgb)
                 neopixels[2] = (R_knob, G_knob, B_knob)     # upper right
                 btn3_status = "waiting"
 
             if btn4_status == "long":
                 mem4_rgb = keep_this_rgb
-                circle_mem_4.fill = rgb_value_i
+                circle_mem_4.fill = convert_tuple_to_hex(keep_this_rgb)
                 neopixels[3] = (R_knob, G_knob, B_knob)     # lower right
                 btn4_status = "waiting"
 
-
-            if btn1_status == "short":
-                print("button 1 short")
-                btn1_status = "waiting"
-                # mode == "showing_stored_value"
-
-            if btn2_status == "short":
-                print("button 2 short")
-                btn2_status = "waiting"
-                # mode == "showing_stored_value"
-
-            if btn3_status == "short":
-                print("button 3 short")
-                btn3_status = "waiting"
-                # mode == "showing_stored_value"
-
-            if btn4_status == "short":
-                print("button 4 short")
-                btn4_status = "waiting"
-                # mode == "showing_stored_value"
         else:
             # here we are in show_memory_value mode
-            pass
-        
+            if (abs(R_knob - R_knob_last) > 5) or (abs(G_knob - G_knob_last) > 5) or (abs(B_knob - B_knob_last) > 5):
+                mode = "show_knob_value"
+                print("entering show knob")
